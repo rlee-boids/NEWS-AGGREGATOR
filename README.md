@@ -91,7 +91,7 @@ The News Aggregator is a web application designed to aggregate, filter, and pers
 - `POST /news/subscribe`: Add or update user subscriptions.
 
 ### Get News from External:
-- `GET /external`: Get news from external sources.
+- `GET /news/external`: Get news from external sources.
 
 ### Authentication:
 - `POST /register`: Register new user.
