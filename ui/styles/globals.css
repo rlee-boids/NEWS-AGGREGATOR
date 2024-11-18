@@ -1,0 +1,127 @@
+/* styles/globals.css */
+
+/* Base styling */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Container styling */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Flex layout for list items */
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card styling */
+.news-item, .news-details {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f9f9f9;
+}
+
+/* Responsive styles */
+@media (min-width: 768px) {
+  /* Flexbox for list */
+  .news-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .filter-search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .news-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+h1, h2 {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  h1, h2 {
+    font-size: 2rem;
+  }
+}
+/* Custom Dropdown (Select), Input, and Button Styles */
+.filter-search select,
+.filter-search input[type="text"],
+.filter-search button {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.filter-search select {
+  appearance: none;
+  background-color: #f0f0f0;
+  padding-right: 30px; /* Space for dropdown arrow */
+  cursor: pointer;
+}
+
+.filter-search input[type="text"] {
+  background-color: #fafafa;
+}
+
+.filter-search button {
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  border: none;
+  font-weight: bold;
+}
+
+/* Hover and Focus Effects */
+.filter-search select:hover,
+.filter-search input[type="text"]:hover,
+.filter-search button:hover {
+  background-color: #e0e0e0;
+}
+
+.filter-search select:focus,
+.filter-search input[type="text"]:focus,
+.filter-search button:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.filter-search button:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filter-search {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filter-search select,
+  .filter-search input[type="text"],
+  .filter-search button {
+    width: 100%;
+  }
+}
