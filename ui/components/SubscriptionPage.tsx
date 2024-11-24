@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Row, Col, Alert } from 'react-bootstrap';
+import { Form, Button, Row, Col, Alert, ProgressBar } from 'react-bootstrap';
 import { useRouter } from 'next/router';
 import { topics, states } from '../constants/constants'; 
 
@@ -9,6 +9,8 @@ const SubscriptionPage: React.FC = () => {
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false); // Track loading state
+  const [progress, setProgress] = useState(0); // Track progress bar value
 
   // Load user info from session store
   useEffect(() => {
@@ -52,8 +54,25 @@ const SubscriptionPage: React.FC = () => {
     );
   };
 
+  // Simulate Progress
+  const simulateProgress = () => {
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += 10;
+      setProgress(currentProgress);
+      if (currentProgress >= 100) {
+        clearInterval(interval);
+      }
+    }, 1000); // Update every 200ms
+  };
+
   // Save updated subscriptions
   const handleSave = async () => {
+    setLoading(true); // Start progress bar
+    setMessage(null); // Clear previous messages
+    setProgress(0); // Reset progress bar
+    simulateProgress(); // Start progress simulation
+
     try {
       const response = await fetch('http://localhost:5000/news/subscribe', {
         method: 'POST',
@@ -67,19 +86,25 @@ const SubscriptionPage: React.FC = () => {
 
       if (response.ok) {
         setMessage('Subscriptions updated successfully!');
-        router.push({
-          pathname: '/',
-          query: {
-            state: selectedStates.join(','),
-            topic: selectedTopics.join(','),
-          },
-        });
+        // Simulate article loading with a timeout for demonstration purposes
+        setTimeout(() => {
+          setLoading(false); // Stop progress bar when articles are loaded
+          router.push({
+            pathname: '/',
+            query: {
+              state: selectedStates.join(','),
+              topic: selectedTopics.join(','),
+            },
+          });
+        }, 2000); // Simulate a 2-second delay
       } else {
         setMessage('Failed to update subscriptions.');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error updating subscriptions:', error);
       setMessage('An error occurred while saving subscriptions.');
+      setLoading(false);
     }
   };
 
@@ -99,6 +124,12 @@ const SubscriptionPage: React.FC = () => {
 
       <h1>Manage Subscriptions</h1>
       {message && <Alert variant="info">{message}</Alert>}
+
+      {loading && (
+        <div className="my-3">
+          <ProgressBar animated now={progress} label={`${progress}%`} />
+        </div>
+      )}
 
       <Form>
         <Row>
@@ -151,7 +182,7 @@ const SubscriptionPage: React.FC = () => {
             </Form.Group>
           </Col>
         </Row>
-        <Button variant="primary" className="mt-3" onClick={handleSave}>
+        <Button variant="primary" className="mt-3" onClick={handleSave} disabled={loading}>
           Save Changes
         </Button>
       </Form>

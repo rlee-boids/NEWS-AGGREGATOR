@@ -8,6 +8,7 @@ interface Article {
   state: string;
   topic: string;
   date: string;
+  imageUrl?: string;
 }
 
 interface NewsListProps {
@@ -22,6 +23,12 @@ const NewsList: React.FC<NewsListProps> = ({ articles, onArticleClick }) => {
         <Col key={article.id}>
           <Card className="h-100" onClick={() => onArticleClick(article.id)} style={{ cursor: 'pointer' }}>
             <Card.Body>
+                <img
+                src={article.imageUrl || '/images/placeholder.png'} 
+                alt={article.title}
+                loading="lazy" // Lazy loading
+                style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+              />
               <Card.Title>{article.title}</Card.Title>
               <Card.Text>{article.summary}</Card.Text>
             </Card.Body>

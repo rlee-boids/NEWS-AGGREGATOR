@@ -6,12 +6,14 @@ import newsRoutes from './routes/newsRoutes';
 import cron from 'node-cron';
 import { runCronJobForNews } from './controllers/newsController';
 import subscriptionRoutes from './routes/subscriptionRoutes';
+import { newsRateLimiter }  from './middlewares/rateLimiter';
 
 config();
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use('/news', newsRateLimiter);
 app.use('/news', newsRoutes);
 app.use('/user', userRoutes);
 app.use('/subscriptions', subscriptionRoutes);

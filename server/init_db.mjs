@@ -11,12 +11,13 @@ import { open } from 'sqlite';
   await db.exec(`
     CREATE TABLE IF NOT EXISTS news (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
+      title TEXT NOT NULL,
       summary TEXT,
       state TEXT,
       topic TEXT,
-      date TEXT,
-      link TEXT
+      date TEXT NOT NULL,
+      link TEXT NOT NULL UNIQUE,
+      imageUrl TEXT
     );
   `);
 

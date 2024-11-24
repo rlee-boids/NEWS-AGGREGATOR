@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"components\\\\HomePage.tsx -> ../components/FilterSearch\":{\"id\":\"components\\\\HomePage.tsx -> ../components/FilterSearch\",\"files\":[\"static/chunks/components_FilterSearch_tsx.js\"]},\"components\\\\HomePage.tsx -> ../components/NewsList\":{\"id\":\"components\\\\HomePage.tsx -> ../components/NewsList\",\"files\":[\"static/chunks/components_NewsList_tsx.js\"]}}"

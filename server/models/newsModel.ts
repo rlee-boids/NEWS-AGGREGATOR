@@ -8,6 +8,7 @@ interface NewsArticle {
   topic: string;
   date: string;
   link: string;
+  imageUrl?: string;
 }
 
 // Retrieve all news articles with filters
@@ -16,7 +17,15 @@ export const getAllNews = async (filters: { states: string[]; topics: string[]; 
   try {
     const { states, topics, search } = filters;
 
-    let query = `SELECT * FROM news WHERE 1=1`;
+    let query = `SELECT id,
+                        title,
+                        summary,
+                        state,
+                        topic,
+                        date,
+                        link,
+                        imageUrl 
+                        FROM news WHERE 1=1`;
 
     // States filter
     if (states.length > 0) {
@@ -29,15 +38,16 @@ export const getAllNews = async (filters: { states: string[]; topics: string[]; 
       const topicConditions = topics.map(() => `topic LIKE ?`).join(' OR ');
       query += ` AND (${topicConditions})`;
     }
-
     // Search filter
     if (search) {
       query += ` AND (title LIKE ? OR summary LIKE ?)`;
     }
 
+    // Add sorting by date (latest first)
+    query += ` ORDER BY date DESC`;
+
     // Add pagination
     query += ` LIMIT ? OFFSET ?`;
-
     // Build query
     const topicParams = topics.map(topic => `%${topic}%`);
     const params = [
@@ -68,15 +78,29 @@ export const getNewsByIdFromDB = async (id: number) => {
 };
 
 // Add a new news article
-export const addNewsToDB = async (article: NewsArticle) => {
+export const addNewsToDB = async (article: NewsArticle): Promise<NewsArticle | null> => {
   const db = await getDbConnection();
-  const { title, summary, state, topic, date, link } = article;
-  const result = await db.run(
-    'INSERT INTO news (title, summary, state, topic, date, link) VALUES (?, ?, ?, ?, ?, ?)',
-    title, summary, state, topic, date, link
-  );
-  return { id: result.lastID, ...article };
+  const { title, summary, state, topic, date, link, imageUrl } = article;
+
+  try {
+    const result = await db.run(
+      'INSERT INTO news (title, summary, state, topic, date, link, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      title, summary, state, topic, date, link, imageUrl
+    );
+    return { id: result.lastID, ...article };
+  } catch (error:any) {
+    if (error.code === 'SQLITE_CONSTRAINT') {
+      console.log(`Duplicate article detected for link: ${link}. Skipping insertion.`);
+      return null; // Article already exists, return null
+    } else {
+      console.error('Error adding news to the database:', error);
+      throw error; // Re-throw other errors
+    }
+  } finally {
+    await db.close();
+  }
 };
+
 
 // Get the latest news date for a given state and topic
 export const getLatestNewsDate = async (state: string, topic: string): Promise<string | null> => {
@@ -87,6 +111,24 @@ export const getLatestNewsDate = async (state: string, topic: string): Promise<s
       FROM news
       WHERE state = ? AND topic LIKE ?`;
     const result = await db.get(query, [state, `%${topic}%`]);
+    return result?.latestDate || null;
+  } catch (error) {
+    console.error('Error fetching latest news date:', error);
+    throw error;
+  } finally {
+    await db.close();
+  }
+};
+
+// Check if artical exsits
+export const checkArticleExists = async (link: string): Promise<string | null> => {
+  const db = await getDbConnection();
+  try {
+    const query = `
+      SELECT MAX(date) AS latestDate, link
+      FROM news
+      WHERE link LIKE ?`;
+    const result = await db.get(query, [`%${link}%`]);
     return result?.latestDate || null;
   } catch (error) {
     console.error('Error fetching latest news date:', error);
