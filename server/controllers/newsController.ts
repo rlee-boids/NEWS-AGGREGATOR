@@ -1,76 +1,60 @@
-import axios from 'axios';
 import { Request, Response } from 'express';
-import { getAllNews, getNewsByIdFromDB, addNewsToDB, getLatestNewsDate, checkArticleExists } from '../models/newsModel';
+import { NewsProviderFactory } from '../factories/NewsProviderFactory';
+import { getAllNews, getNewsByIdFromDB, addNewsToDB, checkArticleExists } from '../models/newsModel';
 import { getDistinctStatesAndTopics, subscribeUser, getSubscriptions } from '../models/subscriptionModel';
 import newsEventEmitter from '../utils/newsEventEmitter';
-import { determineState } from '../utils/determineState';
-import { stateKeywords } from '../utils/stateKeywords';
-
-const NEWS_API_KEY = process.env.NEWS_API_URL || '77c0665d133844d2bcff8bc3e7eb8300';
-const NEWS_API_URL = process.env.NEWS_API_KEY || 'https://newsapi.org/v2/top-headlines';
 const API_RATE_LIMIT_DELAY = 3000; // 3 seconds delay between requests
-const MAX_REQUESTS_PER_DAY = 100; // Max requests allowed per 24 hours
+const MAX_REQUESTS_PER_DAY = 100;
 
-export const fetchAndStoreNews = async (states: string[], topics: string[], search?: string) => {
+const fetchAndStoreNews = async (states: string[], topics: string[], search?: string) => {
   try {
-    let requestsMade = 0;
-    // Fetch articles from NewsAPI's /v2/top-headlines endpoint
+    const articles: any[] = [];
+    let totalRequests = 0;
+
+    const providers = NewsProviderFactory.getAvailableProviders() || [];
+    if (providers.length === 0) {
+      console.log("No available providers. Exiting fetch.");
+      return;
+    }
+
     for (const topic of topics) {
-      if (requestsMade >= MAX_REQUESTS_PER_DAY) {
-        console.log("Reached the daily API request limit. Stopping further requests.");
-        break;
+      for (const provider of providers) {
+        if (totalRequests >= MAX_REQUESTS_PER_DAY) {
+          console.log("Daily API request limit reached. Stopping further requests.");
+          break;
+        }
+
+        console.log(`Fetching news for topic: ${topic} from provider: ${provider.constructor.name}`);
+
+        // Fetch articles from the current provider
+        const providerArticles = await provider.fetchNews(states, [topic], search);
+        articles.push(...providerArticles);
+
+        totalRequests += 1;
+
+        // Add delay to avoid hitting rate limits
+        await new Promise((resolve) => setTimeout(resolve, API_RATE_LIMIT_DELAY));
       }
-      const response = await axios.get(NEWS_API_URL, {
-        params: {
-          country: 'us', // Hardcoded to 'us'
-          category: topic.toLowerCase(), // Map topic to category
-          q: search, // Optional search term
-          language: 'en',
-          apiKey: NEWS_API_KEY,
-          pageSize: 100,
-        },
-      });
+    }
 
-      const articles = response.data.articles
-        .filter((article: any) => {
-          return article && article.title && article.description && article.publishedAt && article.url && article.urlToImage;
-        })
-        .map((article: any) => {
-            const determinedState = determineState(article.title, article.description, states);
-            return {
-            title: article.title,
-            summary: article.description,
-            state: determinedState,
-            topic,
-            date: article.publishedAt,
-            link: article.url,
-            imageUrl: article.urlToImage,
-          }
-        });
-
-      // Insert only new articles
-      const newArticles = [];
-      for (const article of articles) {
-        const exists = await checkArticleExists(article.link);
-        if (!exists || new Date(article.date) > new Date(exists)) {
-          const addedArticle = await addNewsToDB(article);
-          if (addedArticle) {
-            newArticles.push(addedArticle);
-            newsEventEmitter.emit('newArticle', addedArticle);
-          }
+    // Insert articles into the database
+    for (const article of articles) {
+      const exists = await checkArticleExists(article.link);
+      if (!exists || new Date(article.date) > new Date(exists)) {
+        const addedArticle = await addNewsToDB(article);
+        if (addedArticle) {
+          newsEventEmitter.emit("newArticle", addedArticle);
         }
       }
-
-      console.log(`Fetched and stored ${newArticles.length} new articles for topic: ${topic}.`);
-      requestsMade += 1;
-      // Delay to avoid rate-limiting issues
-      await new Promise((resolve) => setTimeout(resolve, API_RATE_LIMIT_DELAY));
     }
+
+    console.log(`Fetched and stored ${articles.length} articles from all providers.`);
   } catch (error) {
-    console.error('Error fetching or storing news:', error);
-    throw new Error('Failed to fetch and store news');
+    console.error("Error fetching or storing news:", error);
+    throw new Error("Failed to fetch and store news");
   }
-}; 
+};
+
 
 // GET /news/external
 export const fetchExternalNews = async (req: Request, res: Response) => {
@@ -78,10 +62,10 @@ export const fetchExternalNews = async (req: Request, res: Response) => {
 
   try {
     // Ensure states and topics are arrays
-    const states = state ? String(state).split(',') : Object.keys(stateKeywords); // Use all states if none specified
+    const states = state ? String(state).split(',') : ['General']
     const topics = topic ? String(topic).split(',') : ['General'];
 
-    const articles = await fetchAndStoreNews(states, topics, search ? String(search) : undefined);
+    const articles = await fetchAndStoreNews(states, topics, search ? String(search) : '');
     res.json(articles);
   } catch (error) {
     res.status(500).json({ error: error });
